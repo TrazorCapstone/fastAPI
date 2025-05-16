@@ -5,10 +5,13 @@ import pandas as pd
 
 app = FastAPI(title="Customer Clustering API")
 
-# Load hanya model
 with open("kmeans_model.pkl", "rb") as f:
     kmeans_model = pickle.load(f)
 
+with open("scaler_rfm.pkl", "rb") as f:
+    scaler_rfm = pickle.load(f)
+
+# Schema input dari user
 class CustomerInput(BaseModel):
     Recency: float = Field(..., alias="Recency")
     Frequency: float = Field(..., alias="Frequency")
@@ -23,10 +26,14 @@ def root():
 
 @app.post("/predict")
 def predict(data: CustomerInput):
+    # Ubah input ke DataFrame
     df = pd.DataFrame([data.dict(by_alias=True)])
 
-    # Tidak perlu scaling karena input sudah scaled
-    cluster = kmeans_model.predict(df.values)[0]
+    # Normalisasi data input
+    scaled_data = scaler_rfm.transform(df)
+
+    # Prediksi cluster dari data yang sudah dinormalisasi
+    cluster = kmeans_model.predict(scaled_data)[0]
 
     return {
         "predicted_cluster": int(cluster)
